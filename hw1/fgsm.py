@@ -3,7 +3,6 @@ import torch.nn as nn
 
 
 # fix seed so that random initialization always performs the same 
-# torch.manual_seed(1)
 torch.manual_seed(13)
 
 
