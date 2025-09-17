@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import tqdm
 
 
 # fix seed so that random initialization always performs the same 
@@ -17,28 +18,36 @@ N = nn.Sequential(nn.Linear(10, 10, bias=False),
 x = torch.rand((1,10)) # the first dimension is the batch size; the following dimensions the actual dimension of the data
 x.requires_grad_() # this is required so we can compute the gradient w.r.t x
 
-t = 0 # target class
+t = 1 # target class
 
-epsReal = 0.5  #depending on your data this might be large or small
+epsReal = 1.5  #depending on your data this might be large or small
 eps = epsReal - 1e-7 # small constant to offset floating-point erros
+iter_eps = 1e-1
 
 # The network N classfies x as belonging to class 2
 original_class = N(x).argmax(dim=1).item()  # TO LEARN: make sure you understand this expression
 print("Original Class: ", original_class)
 assert(original_class == 2)
 
-# compute gradient
-# note that CrossEntropyLoss() combines the cross-entropy loss and an implicit softmax function
-L = nn.CrossEntropyLoss()
-loss = L(N(x), torch.tensor([t], dtype=torch.long)) # TO LEARN: make sure you understand this line
-loss.backward()
+x_now = x.clone().detach().requires_grad_()
 
-# your code here
-# adv_x should be computed from x according to the fgsm-style perturbation such that the new class of xBar is the target class t above
-# hint: you can compute the gradient of the loss w.r.t to x as x.grad
-adv_x = x - eps * x.grad.sign()
+for _ in tqdm.trange(100000):
 
-new_class = N(adv_x).argmax(dim=1).item()
+    # compute gradient
+    # note that CrossEntropyLoss() combines the cross-entropy loss and an implicit softmax function
+    L = nn.CrossEntropyLoss()
+    loss = L(N(x_now), torch.tensor([t], dtype=torch.long)) # TO LEARN: make sure you understand this line
+    loss.backward()
+
+    adv_x = x - torch.clamp(x - (x_now - iter_eps * x_now.grad.sign()), -eps, eps)
+
+    new_class = N(adv_x).argmax(dim=1).item()
+
+    if new_class == t:
+        break
+
+    x_now = adv_x.clone().detach().requires_grad_()
+
 print("Original Input: ", x)
 print("Adversarial Example: ", adv_x)
 print("New Class: ", new_class)

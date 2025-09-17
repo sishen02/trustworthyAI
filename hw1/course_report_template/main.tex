@@ -1,0 +1,121 @@
+\documentclass[10pt]{article}
+\usepackage{soul}
+\usepackage{fullpage,course}
+\usepackage{hyperref}
+\usepackage{enumerate}
+\usepackage{xcolor}
+\usepackage{graphicx} % Required for inserting images
+\usepackage[T1]{fontenc}
+\usepackage{tabularx}
+\usepackage{amsmath}
+\usepackage{fancyvrb}
+
+\def\handout{Homework 1}
+\parskip 6pt
+\parindent 0pt
+
+\begin{document}
+
+\vspace*{-0.2in}
+
+\begin{center}
+\bf Student Name: Sishen Zhang \hspace{3mm} NetID: sishenz2
+\end{center}
+
+\normalsize
+
+\section{FSGM attack}
+
+\subsection{}
+
+There are three steps to implement the targeted fast gradient sign method (FGSM) attack:
+\begin{enumerate}
+    \item Compute perturbation: $\eta = \epsilon \cdot \text{sign}(\nabla_x \text{loss}_t(x))$ where $\text{loss}_t$ is the loss function for the target class.
+    \item Generate adversarial example: $x_{adv} = x - \eta$
+    \item Check if the adversarial example is classified as the target class.
+\end{enumerate}
+
+I follow the above steps to implement the targeted FGSM attack in the provided \texttt{fgsm.py} file. The critical part of the code is shown below:
+
+\begin{Verbatim}[frame=single]
+loss = L(N(x), torch.tensor([t], dtype=torch.long))
+
+# I first calculate the gradient of the loss for the target class w.r.t. the input 
+loss.backward()
+
+# Then I compute the perturbation and generate the adversarial example
+adv_x = x - eps * x.grad.sign()
+\end{Verbatim}
+
+An excerpt of the output is as follows:
+
+\begin{Verbatim}[frame=single]
+Original Class:  2
+Original Input:  tensor([[0.6584, 0.8175, 0.1262, 0.0541, 0.2268, 0.8405, 0.5393, 0.9798, 
+        0.8597, 0.5977]], requires_grad=True)
+Adversarial Example:  tensor([[ 0.1584,  1.3175,  0.6262, -0.4459,  0.7268,  0.3405,  0.0393,
+        0.4798, 1.3597,  0.0977]], grad_fn=<SubBackward0>)
+New Class:  0
+Norm:  tensor(0.5000)
+\end{Verbatim}
+
+The new class is exactly the target class, meaning that the attack is successful. The $L_\infty$ norm of the perturbation is 0.5, which is equal to $\epsilon$.
+
+\newpage
+\subsection{}
+
+When I change the target class to 1, the predicted class of the adversarial example is still 2, which suggests that the attack is not successful. This does not necessarily mean that the attack becomes ineffective. It is possible that this input is far away from the decision boundary between class 2 and class 1. Therefore, the magnitude of the perturbation (i.e., $\epsilon$) may not be large enough. To verify this hypothesis, I increase $\epsilon$ from 0.5 to 1.14 and run the attack again. This time, the attack succeeds. The output is as follows:
+
+\begin{Verbatim}[frame=single]
+Original Class:  2
+Gradient:  tensor([[ 0.0420, -0.0004, -0.0112,  0.0155,  0.0447, -0.0180,  0.0227,  0.0003,
+         -0.0204,  0.0019]])
+Original Input:  tensor([[0.6584, 0.8175, 0.1262, 0.0541, 0.2268, 0.8405, 0.5393, 0.9798, 
+        0.8597, 0.5977]], requires_grad=True)
+Adversarial Example:  tensor([[-0.4816,  1.9575,  1.2662, -1.0859, -0.9132,  1.9805, -0.6007,
+        -0.1602, 1.9997, -0.5423]], grad_fn=<SubBackward0>)
+New Class:  1
+Norm:  tensor(1.1400)
+\end{Verbatim}
+
+The problem is, however, that the $L_\infty$ norm of the perturbation is now 1.1400, while the absolute value of original input is at most 1. This means that the adversarial example is probably not very close to the original input.
+
+In view of this, I try to apply the projected gradient descent (PGD) method to generate an adversarial example that is classified as class 1 and is also close to the original input. The critical part of the code is shown below:
+
+\begin{Verbatim}[frame=single]
+adv_x = x - torch.clamp(x - (x_now - iter_eps * x_now.grad.sign()), -eps, eps)
+\end{Verbatim}
+
+In each iteration, I first compute the FGSM-style perturbation and then project the perturbed example back to the $L_\infty$ ball of radius $\epsilon$ centered at the original input. However, this time the attack still fails to generate an adversarial example that is classified as class 1.
+
+Notice that the PGD method and the FGSM method only take account of the sign of the gradient to decide the next step, I try to use the actual gradient instead. The critical part of the code is shown below:
+
+\begin{Verbatim}[frame=single]
+adv_x = x - torch.clamp(x - (x_now - iter_eps * x_now.grad), -eps, eps)
+\end{Verbatim}
+
+This time the attack succeeds. The output is as follows:
+
+\begin{Verbatim}[frame=single]
+Original Input:  tensor([[0.6584, 0.8175, 0.1262, 0.0541, 0.2268, 0.8405, 0.5393, 0.9798, 
+        0.8597, 0.5977]], requires_grad=True)
+Adversarial Example:  tensor([[ 0.9066,  0.5376,  0.0899,  0.5731,  0.1653,  1.2485, 
+        -0.2812, 1.7239, 0.7405,  0.3552]], grad_fn=<SubBackward0>)
+New Class:  1
+Norm:  tensor(0.8205)
+\end{Verbatim}
+
+By applying the original gradient instead of its sign, I can generate an adversarial example that is classified as class 1 and has an $L_\infty$ norm of perturbation equal to 0.8205, which is smaller than previous 1.1400.
+
+\newpage
+\section{Single and Multi-Norm Robustness with PGD attack}
+
+\subsection{}
+
+\newpage
+\subsection{}
+
+\newpage
+\section{Adversarial robustness against unseen adversaries}
+
+\end{document}
