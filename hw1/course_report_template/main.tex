@@ -24,7 +24,7 @@
 
 \normalsize
 
-\section{FSGM attack}
+\section{FGSM Attack}
 
 \subsection{}
 
@@ -112,10 +112,80 @@ By applying the original gradient instead of its sign, I can generate an adversa
 
 \subsection{}
 
+First, I implement the untargeted $L_\infty$ and $L_2$ Projected Gradient Descent (PGD) attack. For the $L_\infty$ PGD attack, I apply the update rule of the FGSM attack in each iteration, followed by a projection step to ensure that the adversarial example remains within the $L_\infty$ ball of radius $\epsilon$ centered at the original input. Finally, I clip the adversarial example to ensure that its pixel values are between 0 and 1 so that it is a valid image. 
+
+\begin{Verbatim}[frame=single]
+adv_x = adv_x + eps_step * adv_x.grad.sign()
+delta = torch.clamp(adv_x - x, min=-eps, max=eps)
+adv_x = torch.clamp(x + delta, min=0, max=1).detach()  
+\end{Verbatim}
+
+The process for the $L_2$ PGD attack is similar, except that I normalize the gradient by its $L_2$ norm before applying it to update the adversarial example, as instructed in the homework description. After that, I project the adversarial example back to the $L_2$ ball and clip it to ensure valid pixel values.
+
+\begin{Verbatim}[frame=single]
+grad_norm = (torch.linalg.vector_norm(grad.view(batch_size, -1), dim=1) + eps_for_division)
+        .view(batch_size, 1, 1, 1)
+adv_x = adv_x + (eps_step * grad) / grad_norm
+delta = adv_x - x
+delta_norm = torch.linalg.vector_norm(delta.view(batch_size, -1), dim=1)
+        .view(batch_size, 1, 1, 1)
+factor = torch.clamp(eps / delta_norm, max=1.0)
+delta = delta * factor
+adv_x = torch.clamp(x + delta, min=0, max=1).detach()
+\end{Verbatim}
+
+The results of above two attacks on the three pre-trained models are as follows, with the results without any attack included for reference.
+
+\begin{table}[htbp]
+\begin{tabularx}{\textwidth}{|>{\hsize=2\hsize}X|X|X|X|X|}
+\hline
+                                   & $L_\infty$ Attack & $L_2$ Attack & No Attack \\ \hline
+Pretrained $L_\infty$-robust Model & 50.63\%           & 45.95\%      & 82.80\%   \\ \hline
+Pretrained $L_2$-robust Model      & 29.11\%           & 53.24\%      & 88.75\%   \\ \hline
+Pretrained RAMP Model              & 48.93\%           & 59.25\%      & 81.19\%   \\ \hline
+\end{tabularx}
+\caption{Robustness of Pretrained Models Against Single Attacks}
+\label{tab:robustness_comparison}
+\end{table}
+
+From the results, we can see that the pretrained $L_\infty$-robust model and the pretrained $L_2$-robust model demonstrate strong robustness against the attack corresponding to what they are trained for, but they are vulnerable to the other type of attack. The pretrained RAMP model, on the other hand, shows a more balanced robustness against both types of attacks, and its performance under both attacks is close to, or even better than, the best performance of the other two models.
+
+
 \newpage
 \subsection{}
 
+First, I implement the multi-norm PGD robustness analysis as follows:
+\begin{Verbatim}[frame=single]
+out = model(x_adv_linf)
+pred_linf = torch.max(out, dim=1)[1]
+out = model(x_adv_l2)
+pred_l2 = torch.max(out, dim=1)[1]
+
+# Count as correct only if both predictions are correct
+tot_acc += ((pred_linf == y_batch) & (pred_l2 == y_batch)).sum().item()
+tot_test += y_batch.size(0) 
+\end{Verbatim}
+
+The results are as follows\footnote{In the starter code, it is suggested that we use $\epsilon=0.5$ for the $L_2$ PGD attack. However, this is different from the $\epsilon=0.75$ used in the single-norm robustness analysis. To ensure a fair comparison, I use $\epsilon=0.75$ for the $L_2$ PGD attack in the multi-norm robustness analysis as well.}:
+\begin{table}[htbp]
+\begin{tabularx}{\textwidth}{|>{\hsize=1.3\hsize}X|>{\hsize=0.8\hsize}X|>{\hsize=0.6\hsize}X|>{\hsize=0.6\hsize}X|>{\hsize=0.7\hsize}X|}
+\hline
+                                   & Mult-norm Attack & $L_\infty$ Attack & $L_2$ Attack & No Attack \\ \hline
+Pretrained $L_\infty$-robust Model & 44.62\%                               & 50.63\%           & 45.95\%      & 82.80\%   \\ \hline
+Pretrained $L_2$-robust Model      & 29.11\%                               & 29.11\%           & 53.24\%      & 88.75\%   \\ \hline
+Pretrained RAMP Model              & 48.92\%                               & 48.93\%           & 59.25\%      & 81.19\%   \\ \hline
+\end{tabularx}
+\caption{Robustness of Pretrained Models Against Multi-Norm Attacks}
+\label{tab:multi_norm_robustness}
+\end{table}
+
+From the data, we can see that the performance of all three models degrades under the multi-norm attack compared to the single-norm attacks, which is expected because a model has to defend against two types of attacks simultaneously to score the accuracy. 
+
+The data also shows that the pretrained RAMP model trades some performance for better robustness. It has a lower accuracy without any attack, but it achieves the best robustness under both single-norm and multi-norm attacks. 
+
+
+
 \newpage
-\section{Adversarial robustness against unseen adversaries}
+\section{Adversarial Robustness Against Unseen Adversaries}
 
 \end{document}

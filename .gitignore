@@ -6,3 +6,5 @@
 *.fdb_latexmk
 *.fls
 main.pdf
+*.pth
+cifar10_data
