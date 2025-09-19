@@ -35,7 +35,7 @@ There are three steps to implement the targeted fast gradient sign method (FGSM)
     \item Check if the adversarial example is classified as the target class.
 \end{enumerate}
 
-I follow the above steps to implement the targeted FGSM attack in the provided \texttt{fgsm.py} file. The critical part of the code is shown below:
+I follow the above steps to implement the targeted FGSM attack in the provided \texttt{fgsm.py} file\footnote{\url{https://github.com/sishen02/trustworthyAI/blob/main/hw1/fgsm.py}}. The critical part of the code is shown below:
 
 \begin{Verbatim}[frame=single]
 loss = L(N(x), torch.tensor([t], dtype=torch.long))
@@ -80,7 +80,7 @@ Norm:  tensor(1.1400)
 
 The problem is, however, that the $L_\infty$ norm of the perturbation is now 1.1400, while the absolute value of original input is at most 1. This means that the adversarial example is probably not very close to the original input.
 
-In view of this, I try to apply the projected gradient descent (PGD) method to generate an adversarial example that is classified as class 1 and is also close to the original input. The critical part of the code is shown below:
+In view of this, I try to apply the projected gradient descent (PGD) method to generate an adversarial example that is classified as class 1 and is also close to the original input.\footnote{\url{https://github.com/sishen02/trustworthyAI/blob/main/hw1/pgd.py}} The critical part of the code is shown below:
 
 \begin{Verbatim}[frame=single]
 adv_x = x - torch.clamp(x - (x_now - iter_eps * x_now.grad.sign()), -eps, eps)
@@ -88,7 +88,7 @@ adv_x = x - torch.clamp(x - (x_now - iter_eps * x_now.grad.sign()), -eps, eps)
 
 In each iteration, I first compute the FGSM-style perturbation and then project the perturbed example back to the $L_\infty$ ball of radius $\epsilon$ centered at the original input. However, this time the attack still fails to generate an adversarial example that is classified as class 1.
 
-Notice that the PGD method and the FGSM method only take account of the sign of the gradient to decide the next step, I try to use the actual gradient instead. The critical part of the code is shown below:
+Notice that the PGD method and the FGSM method only take account of the sign of the gradient to decide the next step, I try to use the actual gradient instead.\footnote{\url{https://github.com/sishen02/trustworthyAI/blob/main/hw1/new.py}} The critical part of the code is shown below:
 
 \begin{Verbatim}[frame=single]
 adv_x = x - torch.clamp(x - (x_now - iter_eps * x_now.grad), -eps, eps)
@@ -112,7 +112,7 @@ By applying the original gradient instead of its sign, I can generate an adversa
 
 \subsection{}
 
-First, I implement the untargeted $L_\infty$ and $L_2$ Projected Gradient Descent (PGD) attack. For the $L_\infty$ PGD attack, I apply the update rule of the FGSM attack in each iteration, followed by a projection step to ensure that the adversarial example remains within the $L_\infty$ ball of radius $\epsilon$ centered at the original input. Finally, I clip the adversarial example to ensure that its pixel values are between 0 and 1 so that it is a valid image. 
+First, I implement the untargeted $L_\infty$ and $L_2$ Projected Gradient Descent (PGD) attack.\footnote{All of the implementation in this question is here \url{https://github.com/sishen02/trustworthyAI/blob/main/hw1/multi_norm_robustness.ipynb}} For the $L_\infty$ PGD attack, I apply the update rule of the FGSM attack in each iteration, followed by a projection step to ensure that the adversarial example remains within the $L_\infty$ ball of radius $\epsilon$ centered at the original input. Finally, I clip the adversarial example to ensure that its pixel values are between 0 and 1 so that it is a valid image. 
 
 \begin{Verbatim}[frame=single]
 adv_x = adv_x + eps_step * adv_x.grad.sign()
