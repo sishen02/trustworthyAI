@@ -188,4 +188,30 @@ The data also shows that the pretrained RAMP model trades some performance for b
 \newpage
 \section{Adversarial Robustness Against Unseen Adversaries}
 
+\subsection{Summary}
+
+This paper investigates the adversarial robustness of neural networks against unseen adversaries, specifically focusing on non-$L_p$ norm attacks. The authors apply a unified strategy to generate adversarial examples, and introduce ImageNet-UA, which include 18 new attacks that are not encountered in model training. Their evaluation shows that their metric, UA2, is different from existing robustness metrics and existing defense methods are less effective against these unseen attacks. The authors also discuss potential directions for future research on improving unforeseen adversarial robustness.
+
+\subsection{Strengths}
+
+\begin{itemize}
+    \item The paper proposes clear theoretical frameworks for the construction of the robustness metric and the generation of unseen adversarial examples. The generation of adversarial input follows similar principles as $L_p$ norm-based attacks, but with great variety. This unified generation strategy also qualifies PGD as an easy and efficient method for optimization. 
+    \item The authors conduct extensive experiments to evaluate the effectiveness of robustness training methods, and conclude that $L_2$ adversarial training is more effective that widely used $L_\infty$ adversarial training. This provides useful insights for constructing more robust models.
+    \item The paper discusses potential directions for future research on improving unforeseen adversarial robustness, such as training against a union of adversaries and combining data augmentation and $L_\infty$ training. This may help to improve generalization properties of future models.  
+\end{itemize}
+
+\subsection{Weaknesses}
+
+\begin{itemize}
+    \item The attacks proposed in this paper are all white-box attacks, which assume that the attacker has full access to the model. This is not always the case in real-world scenarios. As claimed in the paper, UA2 measures the accuracy under some distribution of unseen adversaries. It is baised to only consider white-box attacks.
+    \item Although the authors claim that their benchmark is a way to evaluate the robustness of models against unseen adversaries, the attacks are limited to several fixed categories. Future models can be trained on these attacks, which makes them not truly unseen anymore. This may reduce the long-term effectiveness of the benchmark.
+    \item The text is not very well organized when discussing the progress on unforeseen adversarial robustness. The two paragraphs in Section 5.3 are very similar to each other, both talking about data augmentation and regularization techniques. The authors could add more details and make better characterization.
+\end{itemize}
+
+\subsection{Extension}
+
+\begin{itemize}
+    \item One potential extension of this paper could be to explore the effectiveness of attacking language models with their proposed generation strategy. Language is made up of discrete tokens, which makes it difficult to apply perturbation directly. However, we can instead perturb the latent representation of the input text, which is continuous. This way, we might be able to generate adversarial examples as an attack on language models.
+\end{itemize}
+
 \end{document}
